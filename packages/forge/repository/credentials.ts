@@ -12,6 +12,9 @@ import { mistralBlock } from '@typebot.io/mistral-block'
 import { mistralCredentialsSchema } from '@typebot.io/mistral-block/schemas'
 import { openRouterBlock } from '@typebot.io/open-router-block'
 import { openRouterCredentialsSchema } from '@typebot.io/open-router-block/schemas'
+import { digitalchatBlock } from '@typebot.io/digitalchat-block'
+
+import { digitalchatCredentialsSchema } from '@typebot.io/digitalchat-block/schemas'
 import { openAIBlock } from '@typebot.io/openai-block'
 import { openAICredentialsSchema } from '@typebot.io/openai-block/schemas'
 import { qrCodeBlock } from '@typebot.io/qrcode-block'
@@ -33,4 +36,5 @@ export const forgedCredentialsSchemas = {
   [anthropicBlock.id]: anthropicCredentialsSchema,
   [togetherAiBlock.id]: togetherAiCredentialsSchema,
   [openRouterBlock.id]: openRouterCredentialsSchema,
+  [digitalchatBlock.id]: digitalchatCredentialsSchema,
 }
