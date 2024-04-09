@@ -10,6 +10,7 @@ import {
   FormLabel,
   HStack,
   Stack,
+  Text,
 } from '@chakra-ui/react'
 import {
   ForgedBlockDefinition,
@@ -74,7 +75,7 @@ export const ForgeSelectInput = ({
     },
     {
       enabled: !!workspace?.id && (!!baseFetcher || !!actionFetcher),
-      onError: (error) => {
+      onError: (error: { message: any }) => {
         showToast({
           description: error.message,
           status: 'error',
@@ -84,29 +85,42 @@ export const ForgeSelectInput = ({
   )
 
   return (
-    <FormControl
-      isRequired={isRequired}
-      as={direction === 'column' ? Stack : HStack}
-      justifyContent="space-between"
-      width={label || width === 'full' ? 'full' : 'auto'}
-      spacing={direction === 'column' ? 2 : 3}
-    >
-      {label && (
-        <FormLabel mb="0" mr="0" flexShrink={0}>
-          {label}{' '}
-          {moreInfoTooltip && (
-            <MoreInfoTooltip>{moreInfoTooltip}</MoreInfoTooltip>
-          )}
-        </FormLabel>
-      )}
-      <Select
-        items={data?.items}
-        selectedItem={defaultValue}
-        onSelect={onChange}
-        placeholder={placeholder}
-      />
-      {helperText && <FormHelperText mt="0">{helperText}</FormHelperText>}
-    </FormControl>
+    <>
+      <FormControl
+        isRequired={isRequired}
+        as={direction === 'column' ? Stack : HStack}
+        justifyContent="space-between"
+        width={label || width === 'full' ? 'full' : 'auto'}
+        spacing={direction === 'column' ? 2 : 3}
+      >
+        {label && (
+          <FormLabel mb="0" mr="0" flexShrink={0}>
+            {label}{' '}
+            {moreInfoTooltip && (
+              <MoreInfoTooltip>{moreInfoTooltip}</MoreInfoTooltip>
+            )}
+          </FormLabel>
+        )}
+        <Select
+          items={data?.items}
+          selectedItem={defaultValue}
+          onSelect={onChange}
+          placeholder={placeholder}
+        />
+        {helperText && (
+          <FormHelperText mt="0">
+            {helperText.props.children == 'or' ? '' : helperText}
+          </FormHelperText>
+        )}
+      </FormControl>
+      <div>
+        {helperText && (
+          <Text mt="2" textAlign="center">
+            OU
+          </Text>
+        )}
+      </div>
+    </>
   )
 }
 
