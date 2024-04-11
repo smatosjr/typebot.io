@@ -1,6 +1,7 @@
 import { executeSendEmailBlock } from './blocks/integrations/sendEmail/executeSendEmailBlock'
 import { executeWebhookBlock } from './blocks/integrations/webhook/executeWebhookBlock'
 import { executeChatwootBlock } from './blocks/integrations/chatwoot/executeChatwootBlock'
+// import { executeChatwootBlock as executeDigitalChatBlock } from './blocks/integrations/digitalchat/executeDigitalchat'
 import { executeGoogleAnalyticsBlock } from './blocks/integrations/legacy/googleAnalytics/executeGoogleAnalyticsBlock'
 import { executeGoogleSheetBlock } from './blocks/integrations/googleSheets/executeGoogleSheetBlock'
 import { executePixelBlock } from './blocks/integrations/pixel/executePixelBlock'
@@ -24,6 +25,8 @@ export const executeIntegration =
         }
       case IntegrationBlockType.CHATWOOT:
         return executeChatwootBlock(state, block)
+      // case IntegrationBlockType.DIGITALCHAT:
+      //   return executeDigitalChatBlock(state, block)
       case IntegrationBlockType.GOOGLE_ANALYTICS:
         return executeGoogleAnalyticsBlock(state, block)
       case IntegrationBlockType.EMAIL:

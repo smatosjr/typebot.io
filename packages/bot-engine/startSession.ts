@@ -160,6 +160,7 @@ export const startSession = async ({
       dynamicTheme: parseDynamicTheme(initialState),
       messages: [],
       visitedEdges: [],
+      digitalchat: [],
     }
   }
 
@@ -210,6 +211,7 @@ export const startSession = async ({
     newSessionState,
     logs,
     visitedEdges,
+    digitalchat,
   } = chatReply
 
   const clientSideActions = startFlowClientActions ?? []
@@ -249,6 +251,7 @@ export const startSession = async ({
     return {
       newSessionState,
       messages,
+      digitalchat,
       clientSideActions:
         clientSideActions.length > 0 ? clientSideActions : undefined,
       typebot: {
@@ -278,6 +281,7 @@ export const startSession = async ({
       }),
     },
     messages,
+    digitalchat,
     input,
     clientSideActions:
       clientSideActions.length > 0 ? clientSideActions : undefined,

@@ -33,6 +33,7 @@ export const startChat = async ({
     clientSideActions,
     newSessionState,
     visitedEdges,
+    digitalchat,
   } = await startSession({
     version: 2,
     startParams: {
@@ -88,6 +89,7 @@ export const startChat = async ({
       settings: typebot.settings,
     },
     messages,
+    digitalchat,
     input,
     resultId,
     dynamicTheme,

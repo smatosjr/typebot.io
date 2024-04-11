@@ -109,15 +109,17 @@ export const ForgeSelectInput = ({
         />
         {helperText && (
           <FormHelperText mt="0">
-            {helperText.props.children == 'or' ? '' : helperText}
+            {fetcherId === 'fetchTeams' ? '' : helperText}
           </FormHelperText>
         )}
       </FormControl>
       <div>
-        {helperText && (
+        {fetcherId === 'fetchTeams' ? (
           <Text mt="2" textAlign="center">
             OU
           </Text>
+        ) : (
+          ''
         )}
       </div>
     </>

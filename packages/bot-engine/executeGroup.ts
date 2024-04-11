@@ -55,8 +55,9 @@ export const executeGroup = async (
   }: ContextProps
 ): Promise<
   ContinueChatResponse & {
-    newSessionState: SessionState
-    visitedEdges: VisitedEdge[]
+    newSessionState: SessionState & { digitalchat?: {}[] }
+    visitedEdges: VisitedEdge[] & { digitalchat?: {}[] }
+    digitalchat?: {}[]
   }
 > => {
   let newStartTime = startTime
@@ -71,6 +72,10 @@ export const executeGroup = async (
   let newSessionState = state
 
   let index = -1
+
+  const digitalchat = group.blocks.filter(
+    (item) => item.type === 'digitalchat'
+  ) as {}[]
   for (const block of group.blocks) {
     if (
       newStartTime &&
@@ -102,6 +107,7 @@ export const executeGroup = async (
     if (isInputBlock(block))
       return {
         messages,
+        digitalchat,
         input: await parseInput(newSessionState)(block),
         newSessionState: {
           ...newSessionState,
@@ -158,6 +164,7 @@ export const executeGroup = async (
       ) {
         return {
           messages,
+          digitalchat,
           newSessionState: {
             ...newSessionState,
             currentBlockId: block.id,
@@ -176,7 +183,14 @@ export const executeGroup = async (
   }
 
   if (!nextEdgeId && newSessionState.typebotsQueue.length === 1)
-    return { messages, newSessionState, clientSideActions, logs, visitedEdges }
+    return {
+      messages,
+      digitalchat,
+      newSessionState,
+      clientSideActions,
+      logs,
+      visitedEdges,
+    }
 
   const nextGroup = await getNextGroup(newSessionState)(nextEdgeId ?? undefined)
 
@@ -185,7 +199,14 @@ export const executeGroup = async (
   if (nextGroup.visitedEdge) visitedEdges.push(nextGroup.visitedEdge)
 
   if (!nextGroup.group) {
-    return { messages, newSessionState, clientSideActions, logs, visitedEdges }
+    return {
+      messages,
+      digitalchat,
+      newSessionState,
+      clientSideActions,
+      logs,
+      visitedEdges,
+    }
   }
 
   return executeGroup(nextGroup.group, {
