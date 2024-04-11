@@ -52,6 +52,7 @@ export const continueChat = async ({ origin, sessionId, message }: Props) => {
     logs,
     lastMessageNewFormat,
     visitedEdges,
+    digitalchat,
   } = await continueBotFlow(message, {
     version: 2,
     state: session.state,
@@ -83,6 +84,7 @@ export const continueChat = async ({ origin, sessionId, message }: Props) => {
 
   return {
     messages,
+    digitalchat,
     input,
     clientSideActions,
     dynamicTheme: parseDynamicTheme(newSessionState),

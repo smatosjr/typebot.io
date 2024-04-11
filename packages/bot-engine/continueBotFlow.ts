@@ -55,8 +55,9 @@ export const continueBotFlow = async (
   { state, version, startTime }: Params
 ): Promise<
   ContinueChatResponse & {
-    newSessionState: SessionState
-    visitedEdges: VisitedEdge[]
+    newSessionState: SessionState & { digitalchat?: {}[] | undefined }
+    visitedEdges: VisitedEdge[] & { digitalchat?: {}[] | undefined }
+    digitalchat?: {}[] | undefined
   }
 > => {
   let firstBubbleWasStreamed = false
@@ -69,6 +70,10 @@ export const continueBotFlow = async (
     newSessionState.currentBlockId,
     state.typebotsQueue[0].typebot.groups
   )
+
+  const digitalchat = group.blocks.filter(
+    (item) => item.type === 'digitalchat'
+  ) as {}[]
 
   if (!block)
     throw new TRPCError({
@@ -166,6 +171,7 @@ export const continueBotFlow = async (
       return {
         ...(await parseRetryMessage(newSessionState)(block)),
         newSessionState,
+        digitalchat,
         visitedEdges: [],
       }
 
@@ -194,6 +200,7 @@ export const continueBotFlow = async (
     )
     return {
       ...chatReply,
+      digitalchat,
       lastMessageNewFormat:
         formattedReply !== reply ? formattedReply : undefined,
     }
@@ -202,6 +209,7 @@ export const continueBotFlow = async (
   if (!nextEdgeId && state.typebotsQueue.length === 1)
     return {
       messages: [],
+      digitalchat,
       newSessionState,
       lastMessageNewFormat:
         formattedReply !== reply ? formattedReply : undefined,
@@ -217,6 +225,7 @@ export const continueBotFlow = async (
   if (!nextGroup.group)
     return {
       messages: [],
+      digitalchat,
       newSessionState,
       lastMessageNewFormat:
         formattedReply !== reply ? formattedReply : undefined,
