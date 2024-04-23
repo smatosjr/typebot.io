@@ -11,7 +11,7 @@ import { BlockIndices, BlockWithItems } from '@typebot.io/schemas'
 import React, { useEffect, useRef, useState } from 'react'
 import { ItemNode } from './ItemNode'
 import { PlaceholderNode } from '../PlaceholderNode'
-import { isDefined } from '@typebot.io/lib'
+// import { isDefined } from '@typebot.io/lib'
 import {
   useBlockDnd,
   computeNearestPlaceholderIndex,
@@ -21,7 +21,7 @@ import { useGraph } from '@/features/graph/providers/GraphProvider'
 import { Coordinates } from '@dnd-kit/utilities'
 import { BlockSourceEndpoint } from '../../endpoints/BlockSourceEndpoint'
 import { LogicBlockType } from '@typebot.io/schemas/features/blocks/logic/constants'
-import { InputBlockType } from '@typebot.io/schemas/features/blocks/inputs/constants'
+// import { InputBlockType } from '@typebot.io/schemas/features/blocks/inputs/constants'
 import { useTranslate } from '@tolgee/react'
 
 type Props = {
@@ -42,15 +42,15 @@ export const ItemNodesList = ({
   const showPlaceholders =
     draggedItem !== undefined && block.type === draggedItem.type
 
-  const isLastBlock =
-    isDefined(typebot) &&
-    typebot.groups.at(groupIndex)?.blocks?.at(blockIndex + 1) === undefined
+  // const isLastBlock =
+  //   isDefined(typebot) &&
+  //   typebot.groups.at(groupIndex)?.blocks?.at(blockIndex + 1) === undefined
 
-  const someChoiceItemsAreNotConnected =
-    block.type === InputBlockType.CHOICE ||
-    block.type === InputBlockType.PICTURE_CHOICE
-      ? block.items.some((item) => item.outgoingEdgeId === undefined)
-      : true
+  // const someChoiceItemsAreNotConnected =
+  //   block.type === InputBlockType.CHOICE ||
+  //   block.type === InputBlockType.PICTURE_CHOICE
+  //     ? block.items.some((item) => item.outgoingEdgeId === undefined)
+  //     : true
 
   const [position, setPosition] = useState({
     x: 0,
@@ -155,9 +155,7 @@ export const ItemNodesList = ({
           />
         </Stack>
       ))}
-      {isLastBlock && someChoiceItemsAreNotConnected && groupId && (
-        <DefaultItemNode block={block} groupId={groupId} />
-      )}
+      {groupId && <DefaultItemNode block={block} groupId={groupId} />}
 
       {draggedItem && draggedItem.blockId === block.id && (
         <Portal>
