@@ -339,6 +339,8 @@
   "folders.typebotButton.unpublish": "Despublicar",
   "help": "Ajuda",
   "pending": "Pendente",
+  "copy.link": "Copiar link",
+  "copied.link": "Copiado",
   "preview.restartButton.label": "Reiniciar",
   "publish.error.label": "Erro durante a publicação do typebot",
   "publish.versionWarning.checkBreakingChanges": "Certifique-se de verificar todas as <link>alterações significativas associadas</link>",

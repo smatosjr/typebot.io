@@ -9,6 +9,7 @@ import {
   Tag,
   Text,
   useColorModeValue,
+  useClipboard,
 } from '@chakra-ui/react'
 import { WorkspaceRole } from '@typebot.io/prisma'
 import React from 'react'
@@ -19,6 +20,7 @@ type Props = {
   image?: string
   name?: string
   email: string
+  workspaceId?: string
   role: WorkspaceRole
   isGuest?: boolean
   isMe?: boolean
@@ -35,12 +37,16 @@ export const MemberItem = ({
   isGuest = false,
   isMe = false,
   canEdit,
+  workspaceId,
   onDeleteClick,
   onSelectNewRole,
 }: Props) => {
   const { t } = useTranslate()
   const handleAdminClick = () => onSelectNewRole(WorkspaceRole.ADMIN)
   const handleMemberClick = () => onSelectNewRole(WorkspaceRole.MEMBER)
+  const { onCopy, hasCopied } = useClipboard(
+    `https://tp.digitalchat.com.br/typebots?workspaceId=${workspaceId}`
+  )
 
   return (
     <Menu placement="bottom-end" isLazy>
@@ -65,6 +71,9 @@ export const MemberItem = ({
           </MenuItem>
           <MenuItem onClick={handleMemberClick}>
             {convertWorkspaceRoleToReadable(WorkspaceRole.MEMBER)}
+          </MenuItem>
+          <MenuItem onClick={onCopy}>
+            {hasCopied ? t('copied.link') : t('copy.link')}
           </MenuItem>
           <MenuItem color="red.500" onClick={onDeleteClick}>
             {t('remove')}

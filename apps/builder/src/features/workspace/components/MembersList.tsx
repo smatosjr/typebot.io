@@ -139,6 +139,7 @@ export const MembersList = () => {
           key={invitation.email}
           email={invitation.email ?? ''}
           role={invitation.type}
+          workspaceId={invitation.workspaceId}
           onDeleteClick={handleDeleteInvitationClick(invitation.id)}
           onSelectNewRole={handleSelectNewInvitationRole(invitation.id)}
           isGuest

@@ -31,6 +31,8 @@
   "account.preferences.language.heading": "Language",
   "account.preferences.language.tooltip": "The translations are not complete yet. It is a work in progress.",
   "add": "Add",
+  "copy.link": "Copy link",
+  "copied.link": "Copied!",
   "analytics.completionRateLabel": "Completion rate",
   "analytics.notAvailableLabel": "Not available",
   "analytics.startsLabel": "Starts",
