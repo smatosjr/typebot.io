@@ -6,6 +6,7 @@ import {
   Stack,
   Text,
   useColorModeValue,
+  Input,
 } from '@chakra-ui/react'
 import { AlignLeftTextIcon } from '@/components/icons'
 import {
@@ -32,6 +33,7 @@ import { colors } from '@/lib/theme'
 import { HeaderIcon } from '../HeaderIcon'
 import { parseColumnsOrder } from '@typebot.io/results/parseColumnsOrder'
 import { TimeFilterDropdown } from '@/features/analytics/components/TimeFilterDropdown'
+import { ColumnTableFilterDropdown } from '@/features/analytics/components/DropDownColumns'
 import { timeFilterValues } from '@/features/analytics/constants'
 
 type ResultsTableProps = {
@@ -44,6 +46,7 @@ type ResultsTableProps = {
   onScrollToBottom: () => void
   onLogOpenIndex: (index: number) => () => void
   onResultExpandIndex: (index: number) => () => void
+  onSearchTextFilter: (val: object) => void
 }
 
 export const ResultsTable = ({
@@ -56,14 +59,16 @@ export const ResultsTable = ({
   onScrollToBottom,
   onLogOpenIndex,
   onResultExpandIndex,
+  onSearchTextFilter,
 }: ResultsTableProps) => {
   const background = useColorModeValue('white', colors.gray[900])
   const { updateTypebot, currentUserMode } = useTypebot()
   const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({})
   const [isTableScrolled, setIsTableScrolled] = useState(false)
+  const [selectedHeader, setSelectedHeader] = useState('')
+  const [inputValue, setInputValue] = useState('')
   const bottomElement = useRef<HTMLDivElement | null>(null)
   const tableWrapper = useRef<HTMLDivElement | null>(null)
-
   const {
     columnsOrder,
     columnsVisibility = {},
@@ -72,6 +77,22 @@ export const ResultsTable = ({
     ...preferences,
     columnsOrder: parseColumnsOrder(preferences?.columnsOrder, resultHeader),
   }
+
+  const handleChangeFilter = () => {
+    onSearchTextFilter({
+      field: selectedHeader,
+      search: inputValue,
+    })
+  }
+
+  useEffect(() => {
+    if (!inputValue.length) {
+      onSearchTextFilter({
+        field: selectedHeader,
+        search: inputValue,
+      })
+    }
+  }, [inputValue, onSearchTextFilter, selectedHeader])
 
   const changeColumnOrder = (newColumnOrder: string[]) => {
     if (typeof newColumnOrder === 'function') return
@@ -221,25 +242,45 @@ export const ResultsTable = ({
 
   return (
     <Stack maxW="1600px" px="4" overflowY="hidden" spacing={6}>
-      <HStack w="full" justifyContent="flex-end">
-        {currentUserMode === 'write' && (
-          <SelectionToolbar
-            selectedResultsId={Object.keys(rowSelection)}
-            onClearSelection={() => setRowSelection({})}
+      <HStack w="full" justifyContent="space-between">
+        <HStack w="2xl">
+          <ColumnTableFilterDropdown
+            items={resultHeader}
+            onTableHeaderFilterChange={setSelectedHeader}
           />
-        )}
-        <TimeFilterDropdown
-          timeFilter={timeFilter}
-          onTimeFilterChange={onTimeFilterChange}
-          size="sm"
-        />
-        <TableSettingsButton
-          resultHeader={resultHeader}
-          columnVisibility={columnsVisibility}
-          setColumnVisibility={changeColumnVisibility}
-          columnOrder={columnsOrder}
-          onColumnOrderChange={changeColumnOrder}
-        />
+
+          {selectedHeader && (
+            <>
+              <Input
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+              />
+              <Button onClick={() => handleChangeFilter()} width="md">
+                Pesquisar
+              </Button>
+            </>
+          )}
+        </HStack>
+        <HStack>
+          {currentUserMode === 'write' && (
+            <SelectionToolbar
+              selectedResultsId={Object.keys(rowSelection)}
+              onClearSelection={() => setRowSelection({})}
+            />
+          )}
+          <TimeFilterDropdown
+            timeFilter={timeFilter}
+            onTimeFilterChange={onTimeFilterChange}
+            size="sm"
+          />
+          <TableSettingsButton
+            resultHeader={resultHeader}
+            columnVisibility={columnsVisibility}
+            setColumnVisibility={changeColumnVisibility}
+            columnOrder={columnsOrder}
+            onColumnOrderChange={changeColumnOrder}
+          />
+        </HStack>
       </HStack>
       <Box
         ref={tableWrapper}

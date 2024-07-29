@@ -36,12 +36,14 @@ export const ResultsProvider = ({
   typebotId,
   totalResults,
   onDeleteResults,
+  searchText,
 }: {
   timeFilter: (typeof timeFilterValues)[number]
   children: ReactNode
   typebotId: string
   totalResults: number
   onDeleteResults: (totalResultsDeleted: number) => void
+  searchText: object
 }) => {
   const { publishedTypebot } = useTypebot()
   const { showToast } = useToast()
@@ -51,6 +53,7 @@ export const ResultsProvider = ({
     onError: (error) => {
       showToast({ description: error })
     },
+    searchText,
   })
 
   const linkedTypebotIds =

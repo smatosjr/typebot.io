@@ -16,6 +16,7 @@ import {
 import { ChevronLeftIcon } from '@/components/icons'
 import React, { ReactNode } from 'react'
 import { MoreInfoTooltip } from './MoreInfoTooltip'
+import { v4 } from 'uuid'
 
 type Item =
   | string
@@ -106,7 +107,7 @@ export const DropdownList = <T extends Item>({
             <Stack maxH={'35vh'} overflowY="auto" spacing="0">
               {items.map((item) => (
                 <MenuItem
-                  key={item as unknown as string}
+                  key={v4()}
                   maxW="500px"
                   overflow="hidden"
                   whiteSpace="nowrap"

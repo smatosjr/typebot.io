@@ -5,17 +5,24 @@ type Params = {
   timeFilter: (typeof timeFilterValues)[number]
   typebotId: string
   onError?: (error: string) => void
+  searchText?: object
 }
 
 const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone
 
-export const useResultsQuery = ({ timeFilter, typebotId, onError }: Params) => {
+export const useResultsQuery = ({
+  timeFilter,
+  typebotId,
+  onError,
+  searchText,
+}: Params) => {
   const { data, error, fetchNextPage, hasNextPage, refetch } =
     trpc.results.getResults.useInfiniteQuery(
       {
         timeZone,
         timeFilter,
         typebotId,
+        searchText,
       },
       {
         getNextPageParam: (lastPage) => lastPage.nextCursor,

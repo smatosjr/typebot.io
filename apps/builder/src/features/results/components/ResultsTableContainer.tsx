@@ -11,10 +11,12 @@ import { timeFilterValues } from '@/features/analytics/constants'
 type Props = {
   timeFilter: (typeof timeFilterValues)[number]
   onTimeFilterChange: (timeFilter: (typeof timeFilterValues)[number]) => void
+  onSearchTextFilter: (val: object) => void
 }
 export const ResultsTableContainer = ({
   timeFilter,
   onTimeFilterChange,
+  onSearchTextFilter,
 }: Props) => {
   const { query } = useRouter()
   const {
@@ -73,6 +75,7 @@ export const ResultsTableContainer = ({
           onLogOpenIndex={handleLogOpenIndex}
           onResultExpandIndex={handleResultExpandIndex}
           onTimeFilterChange={onTimeFilterChange}
+          onSearchTextFilter={onSearchTextFilter}
         />
       )}
     </Stack>

@@ -41,5 +41,8 @@
       "path": "node_modules/cz-emoji"
     }
   },
-  "packageManager": "pnpm@8.15.4"
+  "packageManager": "pnpm@8.15.4",
+  "dependencies": {
+    "uuid": "^10.0.0"
+  }
 }

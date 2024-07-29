@@ -41,6 +41,8 @@ export const ResultsPage = () => {
   const [timeFilter, setTimeFilter] =
     useState<(typeof timeFilterValues)[number]>(defaultTimeFilter)
 
+  const [searchText, setSearchText] = useState({})
+
   const { showToast } = useToast()
 
   const { data: { stats } = {}, refetch } = trpc.analytics.getStats.useQuery(
@@ -125,10 +127,12 @@ export const ResultsPage = () => {
                 typebotId={publishedTypebot.typebotId}
                 totalResults={stats?.totalStarts ?? 0}
                 onDeleteResults={handleDeletedResults}
+                searchText={searchText}
               >
                 <ResultsTableContainer
                   timeFilter={timeFilter}
                   onTimeFilterChange={setTimeFilter}
+                  onSearchTextFilter={setSearchText}
                 />
               </ResultsProvider>
             ))}

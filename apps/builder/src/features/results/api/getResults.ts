@@ -36,6 +36,12 @@ export const getResults = authenticatedProcedure
       cursor: z.string().optional(),
       timeFilter: z.enum(timeFilterValues).default(defaultTimeFilter),
       timeZone: z.string().optional(),
+      searchText: z
+        .object({
+          field: z.string().optional(),
+          search: z.string().optional(),
+        })
+        .optional(),
     })
   )
   .output(
@@ -51,7 +57,27 @@ export const getResults = authenticatedProcedure
         code: 'BAD_REQUEST',
         message: `limit must be between 1 and ${maxLimit}`,
       })
-    const { cursor } = input
+    const { cursor, searchText } = input
+
+    let answer = {}
+
+    if (searchText?.search) {
+      answer = {
+        answers: {
+          some: {
+            AND: [
+              {
+                content: {
+                  contains: searchText?.search,
+                  mode: 'insensitive',
+                },
+              },
+              { blockId: searchText?.field },
+            ],
+          },
+        },
+      }
+    }
     const typebot = await prisma.typebot.findUnique({
       where: {
         id: input.typebotId,
@@ -100,6 +126,7 @@ export const getResults = authenticatedProcedure
               lte: toDate ?? undefined,
             }
           : undefined,
+        ...answer,
       },
       orderBy: {
         createdAt: 'desc',
