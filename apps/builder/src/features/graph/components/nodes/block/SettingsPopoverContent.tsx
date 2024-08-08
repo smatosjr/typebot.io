@@ -27,6 +27,7 @@ import { HttpRequestSettings } from '@/features/blocks/integrations/webhook/comp
 import { ZapierSettings } from '@/features/blocks/integrations/zapier/components/ZapierSettings'
 import { RedirectSettings } from '@/features/blocks/logic/redirect/components/RedirectSettings'
 import { SetVariableSettings } from '@/features/blocks/logic/setVariable/components/SetVariableSettings'
+import { SetGlobalVariableSettings } from '@/features/blocks/logic/setGlobalVariable/components/SetGlobalVariableSettings'
 import { TypebotLinkForm } from '@/features/blocks/logic/typebotLink/components/TypebotLinkForm'
 import { NumberInputSettings } from '@/features/blocks/inputs/number/components/NumberInputSettings'
 import { EmailInputSettings } from '@/features/blocks/inputs/emailInput/components/EmailInputSettings'
@@ -39,12 +40,15 @@ import { AbTestSettings } from '@/features/blocks/logic/abTest/components/AbTest
 import { PictureChoiceSettings } from '@/features/blocks/inputs/pictureChoice/components/PictureChoiceSettings'
 import { SettingsHoverBar } from './SettingsHoverBar'
 import { PixelSettings } from '@/features/blocks/integrations/pixel/components/PixelSettings'
-import { ZemanticAiSettings } from '@/features/blocks/integrations/zemanticAi/ZemanticAiSettings'
 import { InputBlockType } from '@typebot.io/schemas/features/blocks/inputs/constants'
 import { IntegrationBlockType } from '@typebot.io/schemas/features/blocks/integrations/constants'
 import { LogicBlockType } from '@typebot.io/schemas/features/blocks/logic/constants'
 import { ForgedBlockSettings } from '../../../../forge/components/ForgedBlockSettings'
 import { OpenAISettings } from '@/features/blocks/integrations/openai/components/OpenAISettings'
+import { useForgedBlock } from '@/features/forge/hooks/useForgedBlock'
+import { VideoOnboardingPopover } from '@/features/onboarding/components/VideoOnboardingPopover'
+import { hasOnboardingVideo } from '@/features/onboarding/helpers/hasOnboardingVideo'
+// import { useTypebot } from '@/features/editor/providers/TypebotProvider'
 
 type Props = {
   block: BlockWithOptions
@@ -55,7 +59,9 @@ type Props = {
 
 export const SettingsPopoverContent = ({ onExpandClick, ...props }: Props) => {
   const [isHovering, setIsHovering] = useState(false)
+  // const { globalStateVariables } = useTypebot()
   const arrowColor = useColorModeValue('white', 'gray.800')
+  const { blockDef } = useForgedBlock(props.block.type)
   const ref = useRef<HTMLDivElement | null>(null)
   const handleMouseDown = (e: React.MouseEvent) => e.stopPropagation()
 
@@ -63,39 +69,54 @@ export const SettingsPopoverContent = ({ onExpandClick, ...props }: Props) => {
     e.stopPropagation()
   }
   useEventListener('wheel', handleMouseWheel, ref.current)
+
   return (
     <Portal>
       <PopoverContent onMouseDown={handleMouseDown} pos="relative">
         <PopoverArrow bgColor={arrowColor} />
-        <PopoverBody
-          py="3"
-          overflowY="auto"
-          maxH="400px"
-          ref={ref}
-          shadow="lg"
-          onMouseEnter={() => setIsHovering(true)}
-          onMouseLeave={() => setIsHovering(false)}
+
+        <VideoOnboardingPopover.Root
+          type={props.block.type}
+          blockDef={blockDef}
         >
-          <Stack spacing={3}>
-            <Flex
-              w="full"
-              pos="absolute"
-              top="-56px"
-              height="64px"
-              right={0}
-              justifyContent="flex-end"
-              align="center"
+          {({ onToggle }) => (
+            <PopoverBody
+              py="3"
+              overflowY="auto"
+              maxH="400px"
+              ref={ref}
+              shadow="lg"
+              onMouseEnter={() => setIsHovering(true)}
+              onMouseLeave={() => setIsHovering(false)}
             >
-              <SlideFade in={isHovering} unmountOnExit>
-                <SettingsHoverBar
-                  onExpandClick={onExpandClick}
-                  blockType={props.block.type}
-                />
-              </SlideFade>
-            </Flex>
-            <BlockSettings {...props} />
-          </Stack>
-        </PopoverBody>
+              <Stack spacing={3}>
+                <Flex
+                  w="full"
+                  pos="absolute"
+                  top="-56px"
+                  height="64px"
+                  right={0}
+                  justifyContent="flex-end"
+                  align="center"
+                >
+                  <SlideFade in={isHovering} unmountOnExit>
+                    <SettingsHoverBar
+                      onExpandClick={onExpandClick}
+                      onVideoOnboardingClick={onToggle}
+                      blockType={props.block.type}
+                      blockDef={blockDef}
+                      isVideoOnboardingItemDisplayed={hasOnboardingVideo({
+                        blockType: props.block.type,
+                        blockDef,
+                      })}
+                    />
+                  </SlideFade>
+                </Flex>
+                <BlockSettings {...props} />
+              </Stack>
+            </PopoverBody>
+          )}
+        </VideoOnboardingPopover.Root>
       </PopoverContent>
     </Portal>
   )
@@ -211,6 +232,14 @@ export const BlockSettings = ({
         />
       )
     }
+    case LogicBlockType.SET_GLOBAL_VARIABLE: {
+      return (
+        <SetGlobalVariableSettings
+          options={block.options}
+          onOptionsChange={updateOptions}
+        />
+      )
+    }
     case LogicBlockType.REDIRECT: {
       return (
         <RedirectSettings
@@ -317,11 +346,6 @@ export const BlockSettings = ({
           options={block.options}
           onOptionsChange={updateOptions}
         />
-      )
-    }
-    case IntegrationBlockType.ZEMANTIC_AI: {
-      return (
-        <ZemanticAiSettings block={block} onOptionsChange={updateOptions} />
       )
     }
     case LogicBlockType.CONDITION:

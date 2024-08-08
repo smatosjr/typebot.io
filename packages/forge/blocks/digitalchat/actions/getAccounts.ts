@@ -1,10 +1,10 @@
 import { createAction, option } from '@typebot.io/forge'
 
 import { auth } from '../auth'
-import got from 'got'
+import ky from 'ky'
 import { ResonseProfileAccounts, ResonseAgents, ResonseTeams } from '../type'
 
-export const getAcoounts = createAction({
+export const getAccounts = createAction({
   name: 'Atribuir para',
   auth,
   options: option.object({
@@ -29,15 +29,15 @@ export const getAcoounts = createAction({
     {
       id: 'fetchAccounts',
       fetch: async ({ credentials }) => {
-        const response = await got
+        const response = await ky
           .get(`https://painel.digitalchat.com.br/api/v1/profile`, {
             headers: {
-              api_access_token: credentials.apiKey,
+              api_access_token: credentials?.apiKey,
             },
           })
           .json<ResonseProfileAccounts>()
 
-        return response.accounts.map((item) => ({
+        return response.accounts.map((item: any) => ({
           value: String(item.id),
           label: item.name,
         }))
@@ -48,18 +48,18 @@ export const getAcoounts = createAction({
     {
       id: 'fetchTeams',
       fetch: async ({ credentials, options: { accountId } }) => {
-        const response = await got
+        const response = await ky
           .get(
             `https://painel.digitalchat.com.br/api/v1/accounts/${accountId}/teams`,
             {
               headers: {
-                api_access_token: credentials.apiKey,
+                api_access_token: credentials?.apiKey,
               },
             }
           )
           .json<ResonseTeams>()
 
-        return response.map((item) => ({
+        return response.map((item: any) => ({
           value: String(item.id),
           label: item.name,
         }))
@@ -69,12 +69,12 @@ export const getAcoounts = createAction({
     {
       id: 'fetchAgents',
       fetch: async ({ credentials, options: { accountId } }) => {
-        const response = await got
+        const response = await ky
           .get(
             `https://painel.digitalchat.com.br/api/v1/accounts/${accountId}/agents`,
             {
               headers: {
-                api_access_token: credentials.apiKey,
+                api_access_token: credentials?.apiKey,
               },
             }
           )

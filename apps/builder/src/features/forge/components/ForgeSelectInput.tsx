@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { MoreInfoTooltip } from '@/components/MoreInfoTooltip'
 import { Select } from '@/components/inputs/Select'
+import { VariablesButton } from '@/features/variables/components/VariablesButton'
 import { useWorkspace } from '@/features/workspace/WorkspaceProvider'
 import { useToast } from '@/hooks/useToast'
 import { trpc } from '@/lib/trpc'
@@ -30,6 +31,7 @@ type Props = {
   direction?: 'row' | 'column'
   isRequired?: boolean
   width?: 'full'
+  withVariableButton?: boolean
   onChange: (value: string | undefined) => void
 }
 export const ForgeSelectInput = ({
@@ -44,6 +46,7 @@ export const ForgeSelectInput = ({
   isRequired,
   direction = 'column',
   width,
+  withVariableButton = false,
   onChange,
 }: Props) => {
   const { workspace } = useWorkspace()
@@ -101,27 +104,37 @@ export const ForgeSelectInput = ({
             )}
           </FormLabel>
         )}
-        <Select
-          items={data?.items}
-          selectedItem={defaultValue}
-          onSelect={onChange}
-          placeholder={placeholder}
-        />
-        {helperText && (
-          <FormHelperText mt="0">
-            {fetcherId === 'fetchTeams' ? '' : helperText}
-          </FormHelperText>
-        )}
+        <HStack spacing="0">
+          <Select
+            items={data?.items}
+            selectedItem={defaultValue}
+            onSelect={onChange}
+            placeholder={placeholder}
+          />
+          {helperText && (
+            <FormHelperText mt="0">
+              {fetcherId === 'fetchTeams' ? '' : helperText}
+            </FormHelperText>
+          )}
+          <div>
+            {fetcherId === 'fetchTeams' ? (
+              <Text mt="2" textAlign="center">
+                OU
+              </Text>
+            ) : (
+              ''
+            )}
+          </div>
+          {withVariableButton ? (
+            <VariablesButton
+              onSelectVariable={(variable) => {
+                onChange(`{{${variable.name}}}`)
+              }}
+            />
+          ) : null}
+        </HStack>
+        {helperText && <FormHelperText mt="0">{helperText}</FormHelperText>}
       </FormControl>
-      <div>
-        {fetcherId === 'fetchTeams' ? (
-          <Text mt="2" textAlign="center">
-            OU
-          </Text>
-        ) : (
-          ''
-        )}
-      </div>
     </>
   )
 }

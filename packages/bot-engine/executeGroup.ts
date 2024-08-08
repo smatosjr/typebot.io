@@ -4,8 +4,9 @@ import {
   InputBlock,
   RuntimeOptions,
   SessionState,
+  SetVariableHistoryItem,
 } from '@typebot.io/schemas'
-import { isNotEmpty } from '@typebot.io/lib'
+import { isEmpty, isNotEmpty } from '@typebot.io/lib'
 import {
   isBubbleBlock,
   isInputBlock,
@@ -21,16 +22,17 @@ import { injectVariableValuesInPictureChoiceBlock } from './blocks/inputs/pictur
 import { getPrefilledInputValue } from './getPrefilledValue'
 import { parseDateInput } from './blocks/inputs/date/parseDateInput'
 import { deepParseVariables } from '@typebot.io/variables/deepParseVariables'
-import {
-  BubbleBlockWithDefinedContent,
-  parseBubbleBlock,
-} from './parseBubbleBlock'
 import { InputBlockType } from '@typebot.io/schemas/features/blocks/inputs/constants'
 import { VisitedEdge } from '@typebot.io/prisma'
 import { env } from '@typebot.io/env'
 import { TRPCError } from '@trpc/server'
 import { ExecuteIntegrationResponse, ExecuteLogicResponse } from './types'
 import { createId } from '@paralleldrive/cuid2'
+import {
+  BubbleBlockWithDefinedContent,
+  parseBubbleBlock,
+} from './parseBubbleBlock'
+import { BubbleBlockType } from '@typebot.io/schemas/features/blocks/bubbles/constants'
 
 type ContextProps = {
   version: 1 | 2
@@ -39,7 +41,9 @@ type ContextProps = {
   currentLastBubbleId?: string
   firstBubbleWasStreamed?: boolean
   visitedEdges: VisitedEdge[]
+  setVariableHistory: SetVariableHistoryItem[]
   startTime?: number
+  textBubbleContentFormat: 'richText' | 'markdown'
 }
 
 export const executeGroup = async (
@@ -48,16 +52,19 @@ export const executeGroup = async (
     version,
     state,
     visitedEdges,
+    setVariableHistory,
     currentReply,
     currentLastBubbleId,
     firstBubbleWasStreamed,
     startTime,
+    textBubbleContentFormat,
   }: ContextProps
 ): Promise<
   ContinueChatResponse & {
     newSessionState: SessionState & { digitalchat?: {}[] }
     visitedEdges: VisitedEdge[] & { digitalchat?: {}[] }
     digitalchat?: {}[]
+    setVariableHistory: SetVariableHistoryItem[]
   }
 > => {
   let newStartTime = startTime
@@ -71,6 +78,7 @@ export const executeGroup = async (
 
   let newSessionState = state
 
+  let isNextEdgeOffDefaultPath = false
   let index = -1
 
   const digitalchat = group.blocks.filter(
@@ -93,13 +101,30 @@ export const executeGroup = async (
 
     if (isBubbleBlock(block)) {
       if (!block.content || (firstBubbleWasStreamed && index === 0)) continue
-      messages.push(
-        parseBubbleBlock(block as BubbleBlockWithDefinedContent, {
-          version,
-          variables: newSessionState.typebotsQueue[0].typebot.variables,
-          typebotVersion: newSessionState.typebotsQueue[0].typebot.version,
-        })
-      )
+      const message = parseBubbleBlock(block as BubbleBlockWithDefinedContent, {
+        version,
+        variables: newSessionState.typebotsQueue[0].typebot.variables,
+        typebotVersion: newSessionState.typebotsQueue[0].typebot.version,
+        textBubbleContentFormat,
+      })
+      messages.push(message)
+      if (
+        message.type === BubbleBlockType.EMBED &&
+        message.content.waitForEvent?.isEnabled
+      ) {
+        return {
+          messages,
+          newSessionState: {
+            ...newSessionState,
+            currentBlockId: block.id,
+          },
+          clientSideActions,
+          logs,
+          visitedEdges,
+          setVariableHistory,
+        }
+      }
+
       lastBubbleBlockId = block.id
       continue
     }
@@ -116,6 +141,7 @@ export const executeGroup = async (
         clientSideActions,
         logs,
         visitedEdges,
+        setVariableHistory,
       }
     const executionResponse = (
       isLogicBlock(block)
@@ -126,6 +152,29 @@ export const executeGroup = async (
     ) as ExecuteLogicResponse | ExecuteIntegrationResponse | null
 
     if (!executionResponse) continue
+    if (
+      executionResponse.newSetVariableHistory &&
+      executionResponse.newSetVariableHistory?.length > 0
+    ) {
+      if (!newSessionState.typebotsQueue[0].resultId)
+        newSessionState = {
+          ...newSessionState,
+          previewMetadata: {
+            ...newSessionState.previewMetadata,
+            setVariableHistory: (
+              newSessionState.previewMetadata?.setVariableHistory ?? []
+            ).concat(
+              executionResponse.newSetVariableHistory.map((item) => ({
+                blockId: item.blockId,
+                variableId: item.variableId,
+                value: item.value,
+              }))
+            ),
+          },
+        }
+      else setVariableHistory.push(...executionResponse.newSetVariableHistory)
+    }
+
     if (
       'startTimeShouldBeUpdated' in executionResponse &&
       executionResponse.startTimeShouldBeUpdated
@@ -172,11 +221,14 @@ export const executeGroup = async (
           clientSideActions,
           logs,
           visitedEdges,
+          setVariableHistory,
         }
       }
     }
 
     if (executionResponse.outgoingEdgeId) {
+      isNextEdgeOffDefaultPath =
+        block.outgoingEdgeId !== executionResponse.outgoingEdgeId
       nextEdgeId = executionResponse.outgoingEdgeId
       break
     }
@@ -190,9 +242,14 @@ export const executeGroup = async (
       clientSideActions,
       logs,
       visitedEdges,
+      setVariableHistory,
     }
 
-  const nextGroup = await getNextGroup(newSessionState)(nextEdgeId ?? undefined)
+  const nextGroup = await getNextGroup({
+    state: newSessionState,
+    edgeId: nextEdgeId ?? undefined,
+    isOffDefaultPath: isNextEdgeOffDefaultPath,
+  })
 
   newSessionState = nextGroup.newSessionState
 
@@ -206,6 +263,7 @@ export const executeGroup = async (
       clientSideActions,
       logs,
       visitedEdges,
+      setVariableHistory,
     }
   }
 
@@ -213,6 +271,7 @@ export const executeGroup = async (
     version,
     state: newSessionState,
     visitedEdges,
+    setVariableHistory,
     currentReply: {
       messages,
       clientSideActions,
@@ -220,6 +279,7 @@ export const executeGroup = async (
     },
     currentLastBubbleId: lastBubbleBlockId,
     startTime: newStartTime,
+    textBubbleContentFormat,
   })
 }
 
@@ -247,8 +307,7 @@ export const parseInput =
       }
       case InputBlockType.NUMBER: {
         const parsedBlock = deepParseVariables(
-          state.typebotsQueue[0].typebot.variables,
-          { removeEmptyStrings: true }
+          state.typebotsQueue[0].typebot.variables
         )({
           ...block,
           prefilledValue: getPrefilledInputValue(
@@ -276,8 +335,7 @@ export const parseInput =
       }
       case InputBlockType.RATING: {
         const parsedBlock = deepParseVariables(
-          state.typebotsQueue[0].typebot.variables,
-          { removeEmptyStrings: true }
+          state.typebotsQueue[0].typebot.variables
         )({
           ...block,
           prefilledValue: getPrefilledInputValue(
@@ -295,9 +353,7 @@ export const parseInput =
         }
       }
       default: {
-        return deepParseVariables(state.typebotsQueue[0].typebot.variables, {
-          removeEmptyStrings: true,
-        })({
+        return deepParseVariables(state.typebotsQueue[0].typebot.variables)({
           ...block,
           runtimeOptions: await computeRuntimeOptions(state)(block),
           prefilledValue: getPrefilledInputValue(

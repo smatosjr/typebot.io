@@ -16,6 +16,10 @@ export const executeLogic =
     switch (block.type) {
       case LogicBlockType.SET_VARIABLE:
         return executeSetVariable(state, block)
+      case LogicBlockType.SET_GLOBAL_VARIABLE:
+        return {
+          outgoingEdgeId: '',
+        }
       case LogicBlockType.CONDITION:
         return executeConditionBlock(state, block)
       case LogicBlockType.REDIRECT:

@@ -8,6 +8,10 @@ import { publishTypebot } from './publishTypebot'
 import { unpublishTypebot } from './unpublishTypebot'
 import { deleteTypebot } from './deleteTypebot'
 import { importTypebot } from './importTypebot'
+import { createGlobalVariables } from './createGlobalVariables'
+import { deleteGlobalVariables } from './deleteGlobalVariables'
+import { updateGlobalVariables } from './updateGlobalVariables'
+import { getGlobalVariables } from './getGlobalVariables'
 
 export const typebotRouter = router({
   createTypebot,
@@ -19,4 +23,8 @@ export const typebotRouter = router({
   listTypebots,
   deleteTypebot,
   importTypebot,
+  createGlobalVariables,
+  deleteGlobalVariables,
+  updateGlobalVariables,
+  getGlobalVariables,
 })

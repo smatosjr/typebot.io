@@ -58,13 +58,12 @@ const createAnswers = ({
   count,
   resultIdPrefix,
 }: { resultIdPrefix: string } & Pick<CreateFakeResultsProps, 'count'>) => {
-  return prisma.answer.createMany({
+  return prisma.answerV2.createMany({
     data: [
       ...Array.from(Array(count)).map((_, idx) => ({
         resultId: `${resultIdPrefix}-result${idx}`,
         content: `content${idx}`,
         blockId: 'block1',
-        groupId: 'group1',
       })),
     ],
   })
@@ -151,25 +150,6 @@ export const updateUser = (data: Partial<User>) =>
       id: userId,
     },
   })
-
-export const createWebhook = async (
-  typebotId: string,
-  webhookProps?: Partial<HttpRequest>
-) => {
-  try {
-    await prisma.webhook.delete({ where: { id: 'webhook1' } })
-  } catch {}
-  return prisma.webhook.create({
-    data: {
-      method: 'GET',
-      typebotId,
-      id: 'webhook1',
-      ...webhookProps,
-      queryParams: webhookProps?.queryParams ?? [],
-      headers: webhookProps?.headers ?? [],
-    },
-  })
-}
 
 export const createTypebots = async (partialTypebots: Partial<TypebotV6>[]) => {
   const typebotsWithId = partialTypebots.map((typebot) => {

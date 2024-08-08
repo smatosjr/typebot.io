@@ -1,4 +1,5 @@
 import {
+  AsyncVariableStore,
   LogsStore,
   VariableStore,
   createAction,
@@ -11,7 +12,9 @@ import { baseOptions } from '../baseOptions'
 import { executeFunction } from '@typebot.io/variables/executeFunction'
 import { readDataStream } from 'ai'
 import { deprecatedAskAssistantOptions } from '../deprecated'
-import { OpenAIAssistantStream } from '../helpers/OpenAIAssistantStream'
+import { AssistantStream } from '../helpers/AssistantStream'
+import { isModelCompatibleWithVision } from '../helpers/isModelCompatibleWithVision'
+import { splitUserTextMessageIntoOpenAIBlocks } from '../helpers/splitUserTextMessageIntoOpenAIBlocks'
 
 export const askAssistant = createAction({
   auth,
@@ -67,6 +70,8 @@ export const askAssistant = createAction({
     {
       id: 'fetchAssistants',
       fetch: async ({ options, credentials }) => {
+        if (!credentials?.apiKey) return []
+
         const config = {
           apiKey: credentials.apiKey,
           baseURL: options.baseUrl,
@@ -82,7 +87,9 @@ export const askAssistant = createAction({
 
         const openai = new OpenAI(config)
 
-        const response = await openai.beta.assistants.list()
+        const response = await openai.beta.assistants.list({
+          limit: 100,
+        })
 
         return response.data
           .map((assistant) =>
@@ -100,7 +107,8 @@ export const askAssistant = createAction({
     {
       id: 'fetchAssistantFunctions',
       fetch: async ({ options, credentials }) => {
-        if (!options.assistantId) return []
+        if (!options.assistantId || !credentials?.apiKey) return []
+
         const config = {
           apiKey: credentials.apiKey,
           baseURL: options.baseUrl,
@@ -139,8 +147,8 @@ export const askAssistant = createAction({
       getStreamVariableId: ({ responseMapping }) =>
         responseMapping?.find((m) => !m.item || m.item === 'Message')
           ?.variableId,
-      run: async ({ credentials, options, variables }) =>
-        createAssistantStream({
+      run: async ({ credentials, options, variables }) => ({
+        stream: await createAssistantStream({
           apiKey: credentials.apiKey,
           assistantId: options.assistantId,
           message: options.message,
@@ -151,6 +159,7 @@ export const askAssistant = createAction({
           functions: options.functions,
           responseMapping: options.responseMapping,
         }),
+      }),
     },
     server: async ({
       credentials: { apiKey },
@@ -229,7 +238,7 @@ const createAssistantStream = async ({
     variableId?: string | undefined
   }[]
   logs?: LogsStore
-  variables: VariableStore
+  variables: AsyncVariableStore | VariableStore
 }): Promise<ReadableStream | undefined> => {
   if (isEmpty(assistantId)) {
     logs?.add('Assistant ID is empty')
@@ -269,8 +278,9 @@ const createAssistantStream = async ({
       (mapping) => mapping.item === 'Thread ID'
     )
     if (threadIdResponseMapping?.variableId)
-      variables.set(threadIdResponseMapping.variableId, currentThreadId)
-    else if (threadVariableId) variables.set(threadVariableId, currentThreadId)
+      await variables.set(threadIdResponseMapping.variableId, currentThreadId)
+    else if (threadVariableId)
+      await variables.set(threadVariableId, currentThreadId)
   }
 
   if (!currentThreadId) {
@@ -278,23 +288,24 @@ const createAssistantStream = async ({
     return
   }
 
+  const assistant = await openai.beta.assistants.retrieve(assistantId)
+
   // Add a message to the thread
   const createdMessage = await openai.beta.threads.messages.create(
     currentThreadId,
     {
       role: 'user',
-      content: message,
+      content: isModelCompatibleWithVision(assistant.model)
+        ? await splitUserTextMessageIntoOpenAIBlocks(message)
+        : message,
     }
   )
-  return OpenAIAssistantStream(
+  return AssistantStream(
     { threadId: currentThreadId, messageId: createdMessage.id },
     async ({ forwardStream }) => {
-      const runStream = openai.beta.threads.runs.createAndStream(
-        currentThreadId,
-        {
-          assistant_id: assistantId,
-        }
-      )
+      const runStream = openai.beta.threads.runs.stream(currentThreadId, {
+        assistant_id: assistantId,
+      })
 
       let runResult = await forwardStream(runStream)
 
@@ -322,9 +333,9 @@ const createAssistantStream = async ({
                   args: parameters,
                 })
 
-                newVariables?.forEach((variable) => {
-                  variables.set(variable.id, variable.value)
-                })
+                for (const variable of newVariables ?? []) {
+                  await variables.set(variable.id, variable.value)
+                }
 
                 return {
                   tool_call_id: toolCall.id,

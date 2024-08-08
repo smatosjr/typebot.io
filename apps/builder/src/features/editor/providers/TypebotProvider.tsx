@@ -32,7 +32,7 @@ import { trpc } from '@/lib/trpc'
 import { EventsActions, eventsActions } from './typebotActions/events'
 import { useGroupsStore } from '@/features/graph/hooks/useGroupsStore'
 
-const autoSaveTimeout = 10000
+const autoSaveTimeout = 15000
 
 type UpdateTypebotPayload = Partial<
   Pick<
@@ -55,11 +55,29 @@ export type SetTypebot = (
   newPresent: TypebotV6 | ((current: TypebotV6) => TypebotV6)
 ) => void
 
+export type SetGlobalVariable = {
+  key: string
+  value: string
+}
+
 const typebotContext = createContext<
   {
     typebot?: TypebotV6
     publishedTypebot?: PublicTypebotV6
     publishedTypebotVersion?: PublicTypebot['version']
+    globalStateVariables: { [key: string]: string }
+    createGlobalVariable: (param: SetGlobalVariable) => void
+    deleteGlobalVariable: (param: string) => void
+    updateGlobalVariable: (
+      oldVersion: {
+        key: string
+        value: string
+      },
+      newVersion: {
+        key: string
+        value: string
+      }
+    ) => void
     currentUserMode: 'guest' | 'read' | 'write'
     is404: boolean
     isPublished: boolean
@@ -93,9 +111,19 @@ export const TypebotProvider = ({
 }) => {
   const { showToast } = useToast()
   const [is404, setIs404] = useState(false)
+  const [globalStateVariables, setGlobalStateVariables] = useState<{
+    [key: string]: string
+  }>({})
   const setGroupsCoordinates = useGroupsStore(
     (state) => state.setGroupsCoordinates
   )
+
+  const { isFetching: isFetchingVariables, data: dataVariables } =
+    trpc.typebot.getGlobalVariables.useQuery({})
+  const { mutateAsync: deleteGlobalVariables } =
+    trpc.typebot.deleteGlobalVariables.useMutation({})
+  const { mutateAsync: updateGlobalVariables } =
+    trpc.typebot.updateGlobalVariables.useMutation({})
 
   const {
     data: typebotData,
@@ -165,6 +193,70 @@ export const TypebotProvider = ({
       },
     })
 
+  const { mutateAsync: createGlobalVariables } =
+    trpc.typebot.createGlobalVariables.useMutation({
+      onError: (error) =>
+        showToast({
+          title: 'Erro ao criar variavel',
+          description: error.message,
+        }),
+      onSuccess: () => {
+        showToast({
+          title: 'Variavel criada',
+          description: 'success',
+        })
+      },
+    })
+
+  const createGlobalVariable = async (newContent: SetGlobalVariable) => {
+    await createGlobalVariables({
+      key: newContent.key,
+      value: newContent.value,
+    })
+
+    setGlobalStateVariables({
+      ...globalStateVariables,
+      [newContent.key]: newContent.value,
+    })
+  }
+
+  const deleteGlobalVariable = async (key: string) => {
+    deleteGlobalVariables({
+      key: key,
+    })
+
+    setGlobalStateVariables({
+      ...removeKey(globalStateVariables, key),
+    })
+  }
+
+  const updateGlobalVariable = async (
+    oldVersion: {
+      key: string
+      value: string
+    },
+    newVersion: {
+      key: string
+      value: string
+    }
+  ) => {
+    updateGlobalVariables({ oldVersion, newVersion })
+
+    setGlobalStateVariables({
+      ...removeKey(globalStateVariables, oldVersion.key),
+      [newVersion.key]: newVersion.value,
+    })
+  }
+
+  const removeKey = <T extends object, K extends keyof T>(
+    obj: T,
+    key: K
+  ): Omit<T, K> => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { [key]: _, ...rest } = obj
+    return rest
+  }
+
   const typebot = typebotData?.typebot as TypebotV6
   const publishedTypebot = (publishedTypebotData?.publishedTypebot ??
     undefined) as PublicTypebotV6 | undefined
@@ -174,7 +266,15 @@ export const TypebotProvider = ({
 
   const [
     localTypebot,
-    { redo, undo, flush, canRedo, canUndo, set: setLocalTypebot },
+    {
+      redo,
+      undo,
+      flush,
+      canRedo,
+      canUndo,
+      set: setLocalTypebot,
+      setUpdateDate,
+    },
   ] = useUndo<TypebotV6>(undefined, {
     isReadOnly,
     onUndo: (t) => {
@@ -184,6 +284,14 @@ export const TypebotProvider = ({
       setGroupsCoordinates(t.groups)
     },
   })
+
+  useEffect(() => {
+    if (!isFetchingVariables) {
+      const spreadData = dataVariables ?? {}
+      setGlobalStateVariables({ ...globalStateVariables, ...spreadData })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isFetchingVariables])
 
   useEffect(() => {
     if (!typebot && isDefined(localTypebot)) {
@@ -216,24 +324,38 @@ export const TypebotProvider = ({
       const typebotToSave = {
         ...localTypebot,
         ...updates,
-        updatedAt: new Date(),
       }
-      if (dequal(omit(typebot, 'updatedAt'), omit(typebotToSave, 'updatedAt')))
+      if (
+        dequal(
+          JSON.parse(JSON.stringify(omit(typebot, 'updatedAt'))),
+          JSON.parse(JSON.stringify(omit(typebotToSave, 'updatedAt')))
+        )
+      )
         return
       const newParsedTypebot = typebotV6Schema.parse({ ...typebotToSave })
       setLocalTypebot(newParsedTypebot)
       try {
-        await updateTypebot({
+        const {
+          typebot: { updatedAt },
+        } = await updateTypebot({
           typebotId: newParsedTypebot.id,
           typebot: newParsedTypebot,
         })
+        setUpdateDate(updatedAt)
       } catch {
         setLocalTypebot({
           ...localTypebot,
         })
       }
     },
-    [isReadOnly, localTypebot, setLocalTypebot, typebot, updateTypebot]
+    [
+      isReadOnly,
+      localTypebot,
+      setLocalTypebot,
+      setUpdateDate,
+      typebot,
+      updateTypebot,
+    ]
   )
 
   useAutoSave(
@@ -311,6 +433,10 @@ export const TypebotProvider = ({
         canUndo,
         canRedo,
         isPublished,
+        globalStateVariables,
+        createGlobalVariable,
+        deleteGlobalVariable,
+        updateGlobalVariable,
         updateTypebot: updateLocalTypebot,
         restorePublishedTypebot,
         ...groupsActions(setLocalTypebot as SetTypebot),

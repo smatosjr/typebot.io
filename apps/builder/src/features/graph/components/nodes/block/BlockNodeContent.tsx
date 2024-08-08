@@ -25,6 +25,7 @@ import { WebhookContent } from '@/features/blocks/integrations/webhook/component
 import { ZapierContent } from '@/features/blocks/integrations/zapier/components/ZapierContent'
 import { RedirectNodeContent } from '@/features/blocks/logic/redirect/components/RedirectNodeContent'
 import { SetVariableContent } from '@/features/blocks/logic/setVariable/components/SetVariableContent'
+import { SetGlobalVariableContent } from '@/features/blocks/logic/setGlobalVariable/components/SetGlobalVariableContent'
 import { TypebotLinkNode } from '@/features/blocks/logic/typebotLink/components/TypebotLinkNode'
 import { ItemNodesList } from '../item/ItemNodesList'
 import { GoogleAnalyticsNodeBody } from '@/features/blocks/integrations/googleAnalytics/components/GoogleAnalyticsNodeBody'
@@ -32,7 +33,6 @@ import { ChatwootNodeBody } from '@/features/blocks/integrations/chatwoot/compon
 import { AbTestNodeBody } from '@/features/blocks/logic/abTest/components/AbTestNodeBody'
 import { PictureChoiceNode } from '@/features/blocks/inputs/pictureChoice/components/PictureChoiceNode'
 import { PixelNodeBody } from '@/features/blocks/integrations/pixel/components/PixelNodeBody'
-import { ZemanticAiNodeBody } from '@/features/blocks/integrations/zemanticAi/ZemanticAiNodeBody'
 import { BubbleBlockType } from '@typebot.io/schemas/features/blocks/bubbles/constants'
 import { InputBlockType } from '@typebot.io/schemas/features/blocks/inputs/constants'
 import { LogicBlockType } from '@typebot.io/schemas/features/blocks/logic/constants'
@@ -102,6 +102,9 @@ export const BlockNodeContent = ({
     case LogicBlockType.SET_VARIABLE: {
       return <SetVariableContent block={block} />
     }
+    case LogicBlockType.SET_GLOBAL_VARIABLE: {
+      return <SetGlobalVariableContent block={block} />
+    }
     case LogicBlockType.REDIRECT: {
       return <RedirectNodeContent url={block.options?.url} />
     }
@@ -151,11 +154,8 @@ export const BlockNodeContent = ({
     case IntegrationBlockType.PIXEL: {
       return <PixelNodeBody options={block.options} />
     }
-    case IntegrationBlockType.ZEMANTIC_AI: {
-      return <ZemanticAiNodeBody options={block.options} />
-    }
     default: {
-      return <ForgedBlockNodeContent block={block} />
+      return <ForgedBlockNodeContent block={block} indices={indices} />
     }
   }
 }

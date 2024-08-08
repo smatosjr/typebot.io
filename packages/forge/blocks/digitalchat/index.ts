@@ -1,7 +1,7 @@
 import { createBlock } from '@typebot.io/forge'
 import { DigitalchatLogo } from './logo'
 import { auth } from './auth'
-import { getAcoounts } from './actions/getAccounts'
+import { getAccounts } from './actions/getAccounts'
 
 export const digitalchatBlock = createBlock({
   id: 'digitalchat',
@@ -9,5 +9,5 @@ export const digitalchatBlock = createBlock({
   tags: [],
   LightLogo: DigitalchatLogo,
   auth,
-  actions: [getAcoounts],
+  actions: [getAccounts],
 })

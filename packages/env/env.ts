@@ -322,6 +322,17 @@ const unsplashEnv = {
   },
 }
 
+const pexelsEnv = {
+  client: {
+    NEXT_PUBLIC_PEXELS_API_KEY: z.string().min(1).optional(),
+  },
+  runtimeEnv: {
+    NEXT_PUBLIC_PEXELS_API_KEY: getRuntimeVariable(
+      'NEXT_PUBLIC_PEXELS_API_KEY'
+    ),
+  },
+}
+
 const whatsAppEnv = {
   server: {
     META_SYSTEM_USER_TOKEN: z.string().min(1).optional(),
@@ -341,10 +352,9 @@ const whatsAppEnv = {
   },
 }
 
-const upstashRedis = {
+const redisEnv = {
   server: {
-    UPSTASH_REDIS_REST_URL: z.string().url().optional(),
-    UPSTASH_REDIS_REST_TOKEN: z.string().min(1).optional(),
+    REDIS_URL: z.string().url().optional(),
   },
 }
 
@@ -404,6 +414,15 @@ const tolgeeEnv = {
   },
 }
 
+const keycloakEnv = {
+  server: {
+    KEYCLOAK_CLIENT_ID: z.string().min(1).optional(),
+    KEYCLOAK_CLIENT_SECRET: z.string().min(1).optional(),
+    KEYCLOAK_REALM: z.string().min(1).optional(),
+    KEYCLOAK_BASE_URL: z.string().url().optional(),
+  },
+}
+
 export const env = createEnv({
   server: {
     ...baseEnv.server,
@@ -416,12 +435,13 @@ export const env = createEnv({
     ...vercelEnv.server,
     ...sleekPlanEnv.server,
     ...whatsAppEnv.server,
-    ...upstashRedis.server,
+    ...redisEnv.server,
     ...gitlabEnv.server,
     ...azureEnv.server,
     ...customOAuthEnv.server,
     ...sentryEnv.server,
     ...telemetryEnv.server,
+    ...keycloakEnv.server,
   },
   client: {
     ...baseEnv.client,
@@ -431,6 +451,7 @@ export const env = createEnv({
     ...giphyEnv.client,
     ...vercelEnv.client,
     ...unsplashEnv.client,
+    ...pexelsEnv.client,
     ...sentryEnv.client,
     ...posthogEnv.client,
     ...tolgeeEnv.client,
@@ -443,6 +464,7 @@ export const env = createEnv({
     ...giphyEnv.runtimeEnv,
     ...vercelEnv.runtimeEnv,
     ...unsplashEnv.runtimeEnv,
+    ...pexelsEnv.runtimeEnv,
     ...sentryEnv.runtimeEnv,
     ...posthogEnv.runtimeEnv,
     ...tolgeeEnv.runtimeEnv,

@@ -7,4 +7,5 @@ export enum LogicBlockType {
   WAIT = 'Wait',
   JUMP = 'Jump',
   AB_TEST = 'AB test',
+  SET_GLOBAL_VARIABLE = 'Set global variable',
 }

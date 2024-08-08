@@ -3,6 +3,7 @@ import {
   InputBlock,
   Theme,
   ChatLog,
+  StartChatResponse,
 } from '@typebot.io/schemas'
 import {
   createEffect,
@@ -15,9 +16,9 @@ import {
 import { continueChatQuery } from '@/queries/continueChatQuery'
 import { ChatChunk } from './ChatChunk'
 import {
+  Answer,
   BotContext,
   ChatChunk as ChatChunkType,
-  InitialChatReply,
   OutgoingLog,
 } from '@/types'
 import { isNotDefined } from '@typebot.io/lib'
@@ -29,7 +30,6 @@ import {
   formattedMessages,
   setFormattedMessages,
 } from '@/utils/formattedMessagesSignal'
-import { InputBlockType } from '@typebot.io/schemas/features/blocks/inputs/constants'
 import { saveClientLogsQuery } from '@/queries/saveClientLogsQuery'
 import { HTTPError } from 'ky'
 import { persist } from '@/utils/persist'
@@ -62,7 +62,7 @@ const parseDynamicTheme = (
 })
 
 type Props = {
-  initialChatReply: InitialChatReply
+  initialChatReply: StartChatResponse
   context: BotContext
   onNewInputBlock?: (inputBlock: InputBlock) => void
   onAnswer?: (answer: { message: string; blockId: string }) => void
@@ -73,7 +73,7 @@ type Props = {
 
 export const ConversationContainer = (props: Props) => {
   let chatContainer: HTMLDivElement | undefined
-  const [chatChunks, setChatChunks, isRecovered] = persist(
+  const [chatChunks, setChatChunks, isRecovered, setIsRecovered] = persist(
     createSignal<ChatChunkType[]>([
       {
         input: props.initialChatReply.input,
@@ -131,29 +131,26 @@ export const ConversationContainer = (props: Props) => {
     )
   })
 
+  const saveLogs = async (clientLogs?: ChatLog[]) => {
+    if (!clientLogs) return
+    props.onNewLogs?.(clientLogs)
+    if (props.context.isPreview) return
+    await saveClientLogsQuery({
+      apiHost: props.context.apiHost,
+      sessionId: props.initialChatReply.sessionId,
+      clientLogs,
+    })
+  }
+
   const sendMessage = async (
-    message: string | undefined,
-    clientLogs?: ChatLog[]
+    message?: string,
+    attachments?: Answer['attachments']
   ) => {
-    if (clientLogs) {
-      props.onNewLogs?.(clientLogs)
-      await saveClientLogsQuery({
-        apiHost: props.context.apiHost,
-        sessionId: props.initialChatReply.sessionId,
-        clientLogs,
-      })
-    }
+    setIsRecovered(false)
     setHasError(false)
     const currentInputBlock = [...chatChunks()].pop()?.input
     if (currentInputBlock?.id && props.onAnswer && message)
       props.onAnswer({ message, blockId: currentInputBlock.id })
-    if (currentInputBlock?.type === InputBlockType.FILE)
-      props.onNewLogs?.([
-        {
-          description: 'Files are not uploaded in preview mode',
-          status: 'info',
-        },
-      ])
     const longRequest = setTimeout(() => {
       setIsSending(true)
     }, 1000)
@@ -161,7 +158,13 @@ export const ConversationContainer = (props: Props) => {
     const { data, error } = await continueChatQuery({
       apiHost: props.context.apiHost,
       sessionId: props.initialChatReply.sessionId,
-      message,
+      message: message
+        ? {
+            type: 'text',
+            text: message,
+            attachedFileUrls: attachments?.map((attachment) => attachment.url),
+          }
+        : undefined,
     })
     clearTimeout(longRequest)
     setIsSending(false)
@@ -288,9 +291,10 @@ export const ConversationContainer = (props: Props) => {
         },
         onMessageStream: streamMessage,
       })
+      if (response && 'logs' in response) saveLogs(response.logs)
       if (response && 'replyToSend' in response) {
         setIsSending(false)
-        sendMessage(response.replyToSend, response.logs)
+        sendMessage(response.replyToSend)
         return
       }
       if (response && 'blockedPopupUrl' in response)
@@ -354,11 +358,9 @@ export const ConversationContainer = (props: Props) => {
   )
 }
 
-const BottomSpacer = () => {
-  return (
-    <div
-      class="w-full flex-shrink-0"
-      style={{ height: bottomSpacerHeight + 'px' }}
-    />
-  )
-}
+const BottomSpacer = () => (
+  <div
+    class="w-full flex-shrink-0 typebot-bottom-spacer"
+    style={{ height: bottomSpacerHeight + 'px' }}
+  />
+)
